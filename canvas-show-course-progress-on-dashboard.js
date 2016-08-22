@@ -9,10 +9,12 @@
  */
 
 $(function(){
-    console.log("Checking path...");
+    console.log("canvas-show-course-progress-on-dashboard.js");
+
+    console.log("  Checking if user is on Dashboard...");
     if(window.location.pathname == "/") {
 
-        console.log("User is on dashboard, continuing...");
+        console.log("  User is on dashboard, continuing...");
         var domain = window.location.hostname;
         var currentProgressJsonURL = "https://" + domain + ":443/api/v1/courses?include[]=course_progress&enrollment_type=student";
         var progressData = {};
@@ -20,13 +22,13 @@ $(function(){
         var expectedProgress = null;
 
         var toPercent = function(value) {
-            console.log("converting value to percentage");
+            console.log("  Converting value " + value + " to percentage.");
             if(value < 1) {
                 var percentage = value * 100;
             } else {
-                console.log("number is > 1, returning whole number.");
+                console.log("  Value is > 1, returning original value.");
             }
-            console.log("returning percentage");
+            console.log("  Returning converted percentage " + percentage);
             return percentage;
         }
 
@@ -37,20 +39,20 @@ $(function(){
             var progress = toPercent(progress);
             var currentProgressAsPercent = progress + "%";
 
-            console.log("adding current progress meter");
+            console.log("  Adding current progress meter to course " + courseID + " tile.");
             $('div[data-reactid=".0.$' + courseID + '"]').append(currentProgressMeter);
 
-            console.log("remove bottom border on course tile")
+            console.log("  Hiding bottom border on course " + courseID + " tile.");
             $('div[data-reactid=".0.$' + courseID + '"]').css({
                 'border-bottom-color': '#fff',
             });
 
-            console.log("styling progress meter container");
+            console.log("  Styling progress meters container.");
             $('#progressbar').css({
                 'height': '0px'
             });
 
-            console.log("styling current progress bar")
+            console.log("  Styling current progress bar.");
             $('.progress--current').css({
                 'width': currentProgressAsPercent,
                 'height': '4px',
@@ -62,7 +64,7 @@ $(function(){
                 'data-tooltip': '{"tooltipClass":"popover popover-padded", "position":"bottom"}',
             });
 
-            console.log("adding current progress hover events");
+            console.log("  Adding current progress hover events.");
             /* TODO: fix hover states
             $('.progress--current').hover(function(){
                 $(this).css({
@@ -87,10 +89,10 @@ $(function(){
             var courseID = course;
             var expectedProgressAsPercent = progress + "%";
 
-            console.log("Adding expected progress meter");
+            console.log("  Adding expected progress meter.");
             $('.progress--current').before(expectedProgressMeter);
 
-            console.log("Styling expected progress meter");
+            console.log("  Styling expected progress meter.");
             $('.progress--expected').css({
                 'width': expectedProgressAsPercent,
                 'height': '4px',
@@ -102,7 +104,7 @@ $(function(){
                 'data-tooltip': '{"tooltipClass":"popover popover-padded", "position":"bottom"}',
             });
 
-            console.log("adding expected progress hover events");
+            console.log("  Adding expected progress hover events.");
             /* TODO: fix hover states
             $('.progress--expected').hover(function(){
                 $(this).css({
@@ -124,24 +126,21 @@ $(function(){
 
             var startTime = Date.parse(start);
             var startTimeMS = startTime.getTime();
-            console.log(startTimeMS);
 
             var endTime = Date.parse(end);
             var endTimeMS = endTime.getTime();
-            console.log(endTimeMS);
 
             var now = new Date();
             var nowMS = now.getTime();
-            console.log(nowMS);
 
-            console.log("calculating expected progress");
+            console.log("  Calculating expected progress.");
             var progress = (nowMS - startTimeMS) / (endTimeMS - startTimeMS);
             console.log(progress);
 
-            if(progress > 0) {
+            if(progress >= 0) {
                 return progress;
             } else {
-                console.log("Course dates error, not displaying expected progress");
+                console.log("  Course dates error, not displaying expected progress.");
                 /* TODO: fix positioning
                 console.log("repositoning current progress bar");
                 $('.progress--current').addClass("without_expected--progress");
@@ -166,45 +165,49 @@ $(function(){
             }
         }
 
-        console.log("Getting course progress");
+        console.log("  Getting course progress information...");
         var getCurrentProgress = $.getJSON(currentProgressJsonURL, function(data) {
             progressData = data;
             console.log(progressData);
         });
 
         getCurrentProgress.success(function(){
-            console.log("course progress received, checking progress");
+            console.log("  Course progress data received, checking Current and Expected progress...");
             if(progressData.length > 0) {
                 $.each(progressData, function(idx, course){
 
-                    console.log("Checking if course " + course.id + " has progress...");
+                    console.log("  Checking if course " + course.id + " has progress...");
                     currentProgress = course.course_progress.requirement_completed_count / course.course_progress.requirement_count;
 
                     if(isNaN(currentProgress)) {
-                        console.log("Course Progress not enabled for current course, skipping...");
+                        console.log("  Course Progress not enabled for current course (" + course.id + "), skipping...");
                     } else {
-                        console.log("course has progress, adding current progress");
+                        console.log("  Course " + course.id + " has progress, adding current progress...");
                         console.log(course);
                         insertCurrentProgress(course.id, currentProgress);
 
+                        console.log("  Checking if course " + course.id + " has start/end dates...");
                         if(course.hasOwnProperty("start_at") && course.hasOwnProperty("end_at") && course.start_at != null && course.end_at != null) {
+                            console.log("  Course " + course.id + " has start/end dates, checking expected progress...");
                             expectedProgress = calculateExpectedProgress(course.start_at, course.end_at);
+
+                            console.log("  Inserting expected progress...");
                             insertExpectedProgress(course.id, expectedProgress);
                         } else {
-                            console.log("Course does not have start/end dates, won't add expected progress.");
+                            console.log("  Course does not have start/end dates, won't add expected progress.");
                         }
                     }
                 });
             } else {
-                console.log("No courses found with progress data, exiting.");
+                console.log("  No courses found with progress data, exiting.");
             }
         });
 
         getCurrentProgress.error(function(){
-            console.log("error getting course progress, exiting");
+            console.log(" Error getting course progress data, exiting.");
         });
 
     } else {
-        console.log("user not on dashboard, exiting.");
+        console.log("  User not on dashboard, exiting.");
     }
 });
